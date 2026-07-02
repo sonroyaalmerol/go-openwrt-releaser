@@ -101,7 +101,11 @@ func (p *Packager) Package(pkg config.Package, plan *target.Plan, buildOut strin
 		return nil, err
 	}
 
-	apkName := fmt.Sprintf("%s-%s.apk", pkgBaseName, p.version)
+	archComponent := plan.PKGArch
+	if pkg.ArchAll {
+		archComponent = "all"
+	}
+	apkName := fmt.Sprintf("%s-%s_%s.apk", pkgBaseName, p.version, archComponent)
 	outPath := filepath.Join(outDir, apkName)
 
 	args := []string{"mkpkg",

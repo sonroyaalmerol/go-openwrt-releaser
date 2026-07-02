@@ -118,7 +118,10 @@ func Run(opts Options) error {
 		}
 		var signKey string
 		if cfg.Release.SignKeyEnv != "" {
-			signKey = filepath.Join(feedDir, "private-key.pem")
+			candidate := filepath.Join(feedDir, "private-key.pem")
+			if _, err := os.Stat(candidate); err == nil {
+				signKey = candidate
+			}
 		}
 		idx := indexer.New(apkBin)
 		if _, err := idx.Index(feedDir, signKey); err != nil {
