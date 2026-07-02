@@ -2,3 +2,4 @@
 /.owrt-sdk-cache/
 *.apk
 /openwrt-releaser
+**/.integration-sdk-cache/
