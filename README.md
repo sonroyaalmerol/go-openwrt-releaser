@@ -8,8 +8,6 @@ Cross-compile the binary with native `go build`, then package it into an
 `.apk` using the SDK's prebuilt `apk` host binary. The SDK is downloaded once
 only to extract the `apk` tool; `make` and the golang feed are never invoked.
 
-Build time for one target: ~40 seconds cold (SDK download), ~15 seconds warm.
-
 ## Pipeline
 
 1. Download the OpenWrt SDK tarball for the configured toolchain target.
