@@ -54,11 +54,12 @@ func Run(opts Options) error {
 		return fmt.Errorf("sdk setup: %w", err)
 	}
 
-	cfg.Go.Version = version
-	b := builder.New(opts.ModuleRoot, cfg.Go)
-	prodPackages := cfg.Packages
-	var allApks []string
-	archAllDone := false
+	type uniqueArch struct {
+		plan    *target.Plan
+		wantBin bool
+	}
+	seen := map[string]*uniqueArch{}
+	var uniquePlans []*uniqueArch
 
 	for _, t := range cfg.Targets {
 		if t.Skip {
@@ -68,35 +69,59 @@ func Run(opts Options) error {
 		if err != nil {
 			return fmt.Errorf("target %s: %w", t.OpenWrt, err)
 		}
-		fmt.Printf("\n=== target %s (goarch=%s pkgarch=%s) ===\n", plan.OpenWrt, plan.GOArch, plan.PKGArch)
-
-		targetOut := filepath.Join(distDir, plan.OutputDir())
-		buildOut := filepath.Join(targetOut, "build")
-
-		for _, pkg := range prodPackages {
+		key := plan.PKGArch
+		if _, ok := seen[key]; ok {
+			fmt.Printf("→ target %s shares PKGArch %s, skipping\n", t.OpenWrt, key)
+			continue
+		}
+		wn := false
+		for _, pkg := range cfg.Packages {
 			if pkg.Binary {
-				start := time.Now()
-				fmt.Printf("→ go build (%s)\n", plan.GOArch)
-				if _, err := b.Build(plan, buildOut); err != nil {
-					return err
-				}
-				fmt.Printf("  built in %s\n", time.Since(start).Truncate(time.Millisecond))
+				wn = true
 				break
 			}
 		}
+		ua := &uniqueArch{plan: plan, wantBin: wn}
+		seen[key] = ua
+		uniquePlans = append(uniquePlans, ua)
+	}
+	fmt.Printf("→ %d unique architectures\n", len(uniquePlans))
+
+	cfg.Go.Version = version
+	b := builder.New(opts.ModuleRoot, cfg.Go)
+	var allApks []string
+
+	archAllDone := false
+
+	for _, ua := range uniquePlans {
+		plan := ua.plan
+		pkgDir := filepath.Join(distDir, plan.PKGArch)
+		buildOut := filepath.Join(pkgDir, "build")
+
+		if ua.wantBin {
+			start := time.Now()
+			fmt.Printf("\n→ %s (%s)\n", plan.PKGArch, plan.GOArch)
+			if _, err := b.Build(plan, buildOut); err != nil {
+				return err
+			}
+			fmt.Printf("  built in %s\n", time.Since(start).Truncate(time.Millisecond))
+		}
 
 		pkgr := packager.New(apkBin, version, cfg.ProjectName)
-		for _, pkg := range prodPackages {
+		for _, pkg := range cfg.Packages {
 			if pkg.ArchAll && archAllDone {
 				continue
 			}
+			if pkg.Binary && !ua.wantBin {
+				continue
+			}
 			start := time.Now()
-			fmt.Printf("→ packaging %s\n", pkg.Name)
-			pr, err := pkgr.Package(pkg, plan, buildOut, targetOut)
+			fmt.Printf("  packaging %s\n", pkg.Name)
+			pr, err := pkgr.Package(pkg, plan, buildOut, pkgDir)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("  %s (%s) in %s\n", filepath.Base(pr.ApkPath), pr.PKGArch, time.Since(start).Truncate(time.Millisecond))
+			fmt.Printf("    %s in %s\n", filepath.Base(pr.ApkPath), time.Since(start).Truncate(time.Millisecond))
 			allApks = append(allApks, pr.ApkPath)
 			if pkg.ArchAll {
 				archAllDone = true
