@@ -2,6 +2,7 @@ package arch
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -385,5 +386,37 @@ func SupportedBoards() []string {
 	for b := range seen {
 		out = append(out, b)
 	}
+	return out
+}
+
+func SupportedTargets() []string {
+	var out []string
+	seen := map[string]bool{}
+	for k, info := range subtargetDB {
+		if info.Supported {
+			if !seen[k] {
+				out = append(out, k)
+				seen[k] = true
+			}
+		}
+	}
+	for k, info := range boardDB {
+		if info.Supported && !seen[k+"/generic"] {
+			out = append(out, k)
+			seen[k+"/generic"] = true
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func UnsupportedTargets() []string {
+	var out []string
+	for k, info := range subtargetDB {
+		if !info.Supported {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
 	return out
 }
