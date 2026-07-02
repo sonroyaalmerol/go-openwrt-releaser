@@ -24,6 +24,7 @@ type Go struct {
 	Module  string            `yaml:"module"`
 	Main    string            `yaml:"main"`
 	Binary  string            `yaml:"binary"`
+	Version string            `yaml:"-"`
 	LDFlags []string          `yaml:"ldflags"`
 	Vars    []string          `yaml:"vars"`
 	Tags    []string          `yaml:"tags"`

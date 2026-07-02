@@ -39,8 +39,12 @@ func (b *Builder) Build(plan *target.Plan, outDir string) (*Result, error) {
 	for _, t := range b.go_.Tags {
 		args = append(args, "-tags", t)
 	}
-	if len(b.go_.LDFlags) > 0 {
-		args = append(args, "-ldflags", joinFlags(b.go_.LDFlags))
+	flags := append([]string{}, b.go_.LDFlags...)
+	for _, v := range b.go_.Vars {
+		flags = append(flags, "-X "+strings.ReplaceAll(v, "{{ .Version }}", b.go_.Version))
+	}
+	if len(flags) > 0 {
+		args = append(args, "-ldflags", joinFlags(flags))
 	}
 	args = append(args, "-o", outPath, b.go_.Main)
 

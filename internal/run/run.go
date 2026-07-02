@@ -54,9 +54,11 @@ func Run(opts Options) error {
 		return fmt.Errorf("sdk setup: %w", err)
 	}
 
+	cfg.Go.Version = version
 	b := builder.New(opts.ModuleRoot, cfg.Go)
 	prodPackages := cfg.Packages
 	var allApks []string
+	archAllDone := false
 
 	for _, t := range cfg.Targets {
 		if t.Skip {
@@ -85,6 +87,9 @@ func Run(opts Options) error {
 
 		pkgr := packager.New(apkBin, version, cfg.ProjectName)
 		for _, pkg := range prodPackages {
+			if pkg.ArchAll && archAllDone {
+				continue
+			}
 			start := time.Now()
 			fmt.Printf("→ packaging %s\n", pkg.Name)
 			pr, err := pkgr.Package(pkg, plan, buildOut, targetOut)
@@ -93,6 +98,9 @@ func Run(opts Options) error {
 			}
 			fmt.Printf("  %s (%s) in %s\n", filepath.Base(pr.ApkPath), pr.PKGArch, time.Since(start).Truncate(time.Millisecond))
 			allApks = append(allApks, pr.ApkPath)
+			if pkg.ArchAll {
+				archAllDone = true
+			}
 		}
 	}
 
