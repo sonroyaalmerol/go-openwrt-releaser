@@ -1,0 +1,4 @@
+/dist/
+/.owrt-sdk-cache/
+*.apk
+/openwrt-releaser

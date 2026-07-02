@@ -1,0 +1,62 @@
+project_name: multicast-relay
+
+version: 0.1.4
+
+go:
+  module: github.com/sonroyaalmerol/openwrt-multicast-relay
+  main: ./cmd/multicast-relay
+  binary: multicast-relay
+  ldflags:
+    - -s
+    - -w
+  vars:
+    - main.version={{ .Version }}
+
+sdk:
+  openwrt_version: "25.12.4"
+  gcc_version: "14.3.0"
+  libc: musl
+  toolchain_target: ipq806x/generic
+
+targets:
+  - openwrt: ipq806x/generic
+    pkgarch: arm_cortex-a15_neon-vfpv4
+    goarch: arm
+    goarm: "7"
+  - openwrt: aarch64/generic
+    pkgarch: aarch64_generic
+    goarch: arm64
+
+packages:
+  - name: multicast-relay
+    description: |
+      Relay mDNS, SSDP, and other multicast/broadcast traffic
+      between network interfaces.
+    license: MIT
+    maintainer: sonroyaalmerol
+    url: https://github.com/sonroyaalmerol/openwrt-multicast-relay
+    depends:
+      - libc
+    binary: true
+    binary_dest: /usr/bin
+    files:
+      - src: openwrt/multicast-relay/files/etc/init.d/multicast-relay
+        dest: /etc/init.d/multicast-relay
+        mode: "0755"
+      - src: openwrt/multicast-relay/files/etc/config/multicast-relay
+        dest: /etc/config/multicast-relay
+        mode: "0600"
+        conf: true
+    conffiles:
+      - /etc/config/multicast-relay
+    scripts:
+      post-install: openwrt/multicast-relay/files/postinst
+      pre-deinstall: openwrt/multicast-relay/files/prerm
+    abi_version: ""
+
+release:
+  sign_key_env: APK_SIGN_KEY
+  github:
+    owner: sonroyaalmerol
+    name: openwrt-multicast-relay
+  pages: true
